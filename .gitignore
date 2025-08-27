@@ -4,7 +4,6 @@ node_modules/
 
 
 # 🔹 Ignore environment variables
-.env
 
 # # 🔹 Ignore build files (React Native & Backend)
 
