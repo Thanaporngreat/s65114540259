@@ -7,3 +7,5 @@ cd myapp แล้วใช้คำสั่ง npx react-native run-android --
 email : test@example.com 
 
 Password : @212224236
+
+Edit
