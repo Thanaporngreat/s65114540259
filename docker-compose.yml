@@ -1,19 +1,20 @@
-services: 
+services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: "iot"
-      POSTGRES_USER: "iotuser"
-      POSTGRES_PASSWORD: "iotpass"
+      # ดึงค่ามาจากไฟล์ .env
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./db/init-pg:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL","pg_isready -U iotuser -d iot"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       retries: 20
-    ports:
-      - "20259:5432"        # ← 2XXXX
+    # ports: # ไม่จำเป็นต้องเปิดให้ภายนอกเข้าถึง database โดยตรง
+    #   - "20259:5432"
     restart: unless-stopped
 
   backend:
@@ -25,31 +26,33 @@ services:
     environment:
       NODE_ENV: "production"
       PORT: "8000"
+      # ดึงค่า Database credentials มาจาก .env
       DB_HOST: "postgres"
-      DB_USER: "iotuser"
-      DB_PASSWORD: "iotpass"
-      DB_NAME: "iot"
-      DB_PORT: "5432"       # ภายใน network ใช้ 5432 เท่านั้น
-      INIT_USER_EMAIL: "test@example.com"
-      INIT_USER_PASSWORD: "@212224236"
-      INIT_USER_NAME: "Test User"
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_PORT: "5432"
+      # ดึงค่า Initial User มาจาก .env
+      INIT_USER_EMAIL: ${INIT_USER_EMAIL}
+      INIT_USER_PASSWORD: ${INIT_USER_PASSWORD}
+      INIT_USER_NAME: ${INIT_USER_NAME}
     ports:
-      - "10259:8000"        # ← 1XXXX
+      - "10259:8000" # เปิดเฉพาะ port นี้ให้อาจารย์ตรวจสอบ
     restart: unless-stopped
 
   adminer:
     image: adminer
     environment:
       - ADMINER_DEFAULT_SERVER=postgres
-    ports:
-      - "30259:8080"        # ← 3XXXX
+    # ports: # ไม่จำเป็นต้องเปิด Adminer สำหรับการส่งงาน
+    #   - "30259:8080"
     restart: unless-stopped
 
   myapp:
     build: ./myapp
     container_name: myapp
-    ports:
-      - "40259:8081"        # ← 4XXXX (Metro)
+    # ports: # Port ของ Metro Bundler ไม่จำเป็นต้องเปิดบน server
+    #   - "40259:8081"
     environment:
       REACT_NATIVE_PACKAGER_HOSTNAME: "0.0.0.0"
       CHOKIDAR_USEPOLLING: "1"
