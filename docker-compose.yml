@@ -1,8 +1,23 @@
+# docker-compose.yml
+
 services:
+  # Nginx จะเป็นประตูหน้า รับ request จากภายนอก
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80" # <-- เปิดแค่ port 80 ของ nginx เท่านั้น
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    networks: # <-- ให้ nginx อยู่ใน network นี้
+      - app-net
+    restart: unless-stopped
+
   postgres:
     image: postgres:15
     environment:
-      # ดึงค่ามาจากไฟล์ .env
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -13,8 +28,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       retries: 20
-    # ports: # ไม่จำเป็นต้องเปิดให้ภายนอกเข้าถึง database โดยตรง
-    #   - "20259:5432"
+    networks: # <-- ให้ postgres อยู่ใน network นี้
+      - app-net
     restart: unless-stopped
 
   backend:
@@ -26,37 +41,43 @@ services:
     environment:
       NODE_ENV: "production"
       PORT: "8000"
-      # ดึงค่า Database credentials มาจาก .env
       DB_HOST: "postgres"
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
       DB_PORT: "5432"
-      # ดึงค่า Initial User มาจาก .env
       INIT_USER_EMAIL: ${INIT_USER_EMAIL}
       INIT_USER_PASSWORD: ${INIT_USER_PASSWORD}
       INIT_USER_NAME: ${INIT_USER_NAME}
-    ports:
-      - "10259:8000" # เปิดเฉพาะ port นี้ให้อาจารย์ตรวจสอบ
+    # ports: # <-- ถูกต้องแล้วที่คอมเมนต์ส่วนนี้ออก เพราะเราจะเข้าผ่าน nginx
+    #   - "10259:8000"
+    networks: # <-- ให้ backend อยู่ใน network นี้
+      - app-net
     restart: unless-stopped
 
+  # Service อื่นๆ ก็ควรอยู่ใน network เดียวกันถ้าต้องสื่อสารกัน
   adminer:
     image: adminer
     environment:
       - ADMINER_DEFAULT_SERVER=postgres
-    # ports: # ไม่จำเป็นต้องเปิด Adminer สำหรับการส่งงาน
-    #   - "30259:8080"
+    networks:
+      - app-net
     restart: unless-stopped
 
   myapp:
     build: ./myapp
     container_name: myapp
-    # ports: # Port ของ Metro Bundler ไม่จำเป็นต้องเปิดบน server
-    #   - "40259:8081"
     environment:
       REACT_NATIVE_PACKAGER_HOSTNAME: "0.0.0.0"
       CHOKIDAR_USEPOLLING: "1"
+    networks:
+      - app-net
     restart: unless-stopped
 
 volumes:
   pg_data:
+
+# สร้าง network ของเราขึ้นมาใช้งาน
+networks:
+  app-net:
+    driver: bridge
