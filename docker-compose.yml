@@ -1,20 +1,6 @@
-# docker-compose.yml
+# docker-compose.yml (เวอร์ชันสมบูรณ์ตามตัวอย่างอาจารย์)
 
 services:
-  # Nginx จะเป็นประตูหน้า รับ request จากภายนอก
-  nginx:
-    image: nginx:alpine
-    container_name: nginx
-    ports:
-      - "80:80" # <-- เปิดแค่ port 80 ของ nginx เท่านั้น
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - backend
-    networks: # <-- ให้ nginx อยู่ใน network นี้
-      - app-net
-    restart: unless-stopped
-
   postgres:
     image: postgres:15
     environment:
@@ -28,7 +14,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       retries: 20
-    networks: # <-- ให้ postgres อยู่ใน network นี้
+    networks:
       - app-net
     restart: unless-stopped
 
@@ -49,35 +35,60 @@ services:
       INIT_USER_EMAIL: ${INIT_USER_EMAIL}
       INIT_USER_PASSWORD: ${INIT_USER_PASSWORD}
       INIT_USER_NAME: ${INIT_USER_NAME}
-    # ports: # <-- ถูกต้องแล้วที่คอมเมนต์ส่วนนี้ออก เพราะเราจะเข้าผ่าน nginx
-    #   - "10259:8000"
-    networks: # <-- ให้ backend อยู่ใน network นี้
+    networks:
       - app-net
+      - traefik-public
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # ✅ เพิ่ม label นี้เข้ามา เพื่อระบุ network ให้ Traefik
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.s65114540259-backend-router.rule=PathPrefix(`/s65114540259/api`)"
+      - "traefik.http.middlewares.s65114540259-stripprefix-api.stripprefix.prefixes=/s65114540259/api"
+      - "traefik.http.routers.s65114540259-backend-router.middlewares=s65114540259-stripprefix-api"
+      - "traefik.http.services.s65114540259-backend-service.loadbalancer.server.port=8000"
 
-  # Service อื่นๆ ก็ควรอยู่ใน network เดียวกันถ้าต้องสื่อสารกัน
   adminer:
     image: adminer
     environment:
       - ADMINER_DEFAULT_SERVER=postgres
     networks:
       - app-net
+      - traefik-public
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # ✅ เพิ่ม label นี้เข้ามา
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.s65114540259-adminer-router.rule=PathPrefix(`/s65114540259/adminer`)"
+      - "traefik.http.middlewares.s65114540259-stripprefix-adminer.stripprefix.prefixes=/s65114540259/adminer"
+      - "traefik.http.routers.s65114540259-adminer-router.middlewares=s65114540259-stripprefix-adminer"
+      - "traefik.http.services.s65114540259-adminer-service.loadbalancer.server.port=8080"
 
   myapp:
     build: ./myapp
     container_name: myapp
     environment:
+      PUBLIC_URL: "/s65114540259"
       REACT_NATIVE_PACKAGER_HOSTNAME: "0.0.0.0"
       CHOKIDAR_USEPOLLING: "1"
     networks:
       - app-net
+      - traefik-public
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # ✅ เพิ่ม label นี้เข้ามา
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.s65114540259-myapp-router.rule=PathPrefix(`/s65114540259`)"
+      - "traefik.http.routers.s65114540259-myapp-router.priority=1"
+      - "traefik.http.services.s65114540259-myapp-service.loadbalancer.server.port=3000"
 
 volumes:
   pg_data:
 
-# สร้าง network ของเราขึ้นมาใช้งาน
 networks:
   app-net:
     driver: bridge
+  traefik-public:
+    external: true
