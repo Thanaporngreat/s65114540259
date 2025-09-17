@@ -320,8 +320,8 @@ const checkDatabaseConnection = async () => {
 checkDatabaseConnection();
 
 // ===== Routes อื่น ๆ ของคุณ (เดิม) =====
-app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
+app.use('/auth', authRoutes);
+app.use('/user', userRoutes);
 
 // ✅ **API ให้ Mobile App ดึงข้อมูลเซ็นเซอร์** (เดิม)
 app.get("/api/gas", (req, res) => res.json(gasData));
