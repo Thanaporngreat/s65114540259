@@ -39,15 +39,17 @@ services:
       - app-net
       - traefik-public
     restart: unless-stopped
+# แก้ไข label นี้ในส่วน 'backend'
     labels:
       - "traefik.enable=true"
-      # ✅ เพิ่ม label นี้เข้ามา เพื่อระบุ network ให้ Traefik
       - "traefik.docker.network=traefik-public"
-      - "traefik.http.routers.s65114540259-backend-router.rule=PathPrefix(`/s65114540259/api`)"
-      - "traefik.http.middlewares.s65114540259-stripprefix-api.stripprefix.prefixes=/s65114540259/api"
-      - "traefik.http.routers.s65114540259-backend-router.middlewares=s65114540259-stripprefix-api"
+      # แก้ PathPrefix rule ให้ครอบคลุมแค่รหัสนักศึกษา
+      - "traefik.http.routers.s65114540259-backend-router.rule=PathPrefix(`/s65114540259`)"
+      # แก้ stripprefix middleware ให้ตัดแค่รหัสนักศึกษาออก
+      - "traefik.http.middlewares.s65114540259-stripprefix.stripprefix.prefixes=/s65114540259"
+      # เปลี่ยน middlewares ที่ router เรียกใช้
+      - "traefik.http.routers.s65114540259-backend-router.middlewares=s65114540259-stripprefix"
       - "traefik.http.services.s65114540259-backend-service.loadbalancer.server.port=8000"
-
   adminer:
     image: adminer
     environment:
