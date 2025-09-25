@@ -324,13 +324,13 @@ app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 
 // ✅ **API ให้ Mobile App ดึงข้อมูลเซ็นเซอร์** (เดิม)
-app.get("/api/gas", (req, res) => res.json(gasData));
-app.get("/api/heartrate", (req, res) => res.json(heartrateData));
-app.get("/api/water_leak", (req, res) => res.json(waterLeakStatus));
-app.get("/api/bme680", (req, res) => res.json(bmeData));
-app.get("/api/door_sensor", (req, res) => res.json(doorStatus));
+app.get("/api/gas", authenticateToken, (req, res) => res.json(gasData));
+app.get("/api/heartrate", authenticateToken, (req, res) => res.json(heartrateData));
+app.get("/api/water_leak", authenticateToken, (req, res) => res.json(waterLeakStatus));
+app.get("/api/bme680", authenticateToken, (req, res) => res.json(bmeData));
+app.get("/api/door_sensor", authenticateToken, (req, res) => res.json(doorStatus));
 
-app.get('/api/history', async (req, res) => {
+app.get('/api/history', authenticateToken, async (req, res) => {
   const query = `
     SELECT hr, spo2, timestamp
       FROM health_data
